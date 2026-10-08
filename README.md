@@ -1,70 +1,61 @@
-# Getting Started with Create React App
+# CEGCT Admin Dashboard
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**Repository description:** Dashboard for reviewing CEGCT environmental reports, assigning officers, tracking case progress, and viewing regional analytics.
 
-## Available Scripts
+CEGCT (Community Environmental Guardian & Cleanliness Tracker) is a web dashboard concept for administrators and environmental officers. It provides a shared view of citizen-submitted reports and case management workflows.
 
-In the project directory, you can run:
+## Current implementation
 
-### `npm start`
+This repository contains the frontend application. It currently uses sample report and officer data held in client-side React state. Changes made in the interface are temporary and reset when the page reloads.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The following workflows are available:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Login:** sign-in form that opens the dashboard. Firebase authentication and role checks are connected.
+- **Overview:** Summary cards, a report location visualization, recent report feed, and regional response metrics.
+- **Reports:** Search and filter reports by text, status, and category.
+- **Case details:** Change a report status or assigned officer and add progress notes.
+- **Analytics:** View  report and resolution charts and choose a reporting period.
+- **Officers:** View a regional officer directory.
 
-### `npm test`
+Firebase database access, authentication, realtime subscriptions, storage media, and server persistence have not been connected. The map and analytics currently use frontend visualizations and sample values.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Technology
 
-### `npm run build`
+- React 19 with Create React App
+- React Router for client-side routes
+- Tailwind CSS 3 for styling
+- JavaScript and JSX
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Requirements
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Node.js and npm
+- Project dependencies installed with `npm install`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The application imports `react-router-dom`. If it is not installed in your environment, add it with:
 
-### `npm run eject`
+```bash
+npm install react-router-dom
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Run locally
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm install
+npm start
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The development server opens at [http://localhost:3000](http://localhost:3000).
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Routes
 
-## Learn More
+| Route | Page |
+| --- | --- |
+| `/login` | Demo administrator sign-in |
+| `/dashboard` | Operational overview |
+| `/dashboard/map` | Incident map view |
+| `/dashboard/recent` | Recent reports feed |
+| `/reports` | Searchable reports queue |
+| `/report/:id` | Case details and progress updates |
+| `/analytics` | Environmental impact analytics |
+| `/officers` | Regional officer directory |
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
