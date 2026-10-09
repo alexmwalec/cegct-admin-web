@@ -23,10 +23,10 @@ const Dashboard = () => {
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold tracking-widest text-gray-500">
-            THURSDAY, OCTOBER 8, 2026
+            THURSDAY, OCTOBER 9, 2026
           </p>
           <h1 className="my-2 font-['Manrope',sans-serif] text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Good morning, Thoko <span className="text-green-700">✳</span>
+            Good morning, Thoko <span className="text-green-700"></span>
           </h1>
           <p className="text-base text-gray-600">
             Here’s what’s happening across your region today.
