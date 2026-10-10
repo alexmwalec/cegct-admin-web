@@ -22,7 +22,7 @@ const AdminLayout = ({ title, children }) => {
       >
         <Brand />
         <div className="my-8 rounded-lg bg-gray-50 p-3">
-          <b className="text-sm">NEMA Malawi</b>
+          <b className="text-sm">NEPA Malawi</b>
           <p className="mt-1 text-xs text-gray-500">Regional operations</p>
         </div>
         <p className="mb-3 px-2 text-xs font-bold tracking-wider text-gray-400">
