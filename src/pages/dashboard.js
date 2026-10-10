@@ -8,6 +8,15 @@ import { useDashboard } from "../lib/AppContext";
 
 const Dashboard = () => {
   const { reports } = useDashboard();
+  const today = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "Africa/Blantyre",
+  })
+    .format(new Date())
+    .toUpperCase();
   const pending = reports.filter((report) =>
     ["SUBMITTED", "UNDER_REVIEW"].includes(report.status),
   ).length;
@@ -23,7 +32,7 @@ const Dashboard = () => {
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold tracking-widest text-gray-500">
-            THURSDAY, OCTOBER 9, 2026
+            {today}
           </p>
           <h1 className="my-2 font-['Manrope',sans-serif] text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             Good morning, Thoko <span className="text-green-700"></span>
@@ -36,7 +45,7 @@ const Dashboard = () => {
           className="rounded-lg bg-[#185835] px-5 py-3 text-sm font-semibold text-white hover:bg-[#12472a]"
           to="/reports"
         >
-          View reports queue <span className="ml-2">→</span>
+          View reports<span className="ml-2">→</span>
         </Link>
       </div>
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
