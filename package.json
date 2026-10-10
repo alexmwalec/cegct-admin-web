@@ -1,6 +1,7 @@
 {
   "name": "cegct-web",
   "version": "0.1.0",
+  "description": "Frontend dashboard for reviewing CEGCT environmental reports, managing cases, and viewing regional impact analytics.",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.2",
