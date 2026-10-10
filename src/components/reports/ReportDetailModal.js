@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../layout/AdminLayout";
 import StatusBadge from "../ui/StatusBadge";
@@ -13,6 +13,11 @@ const ReportDetailModal = () => {
   const report = reports.find((item) => item.id === id);
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState(report?.status || "SUBMITTED");
+
+  useEffect(() => {
+    if (report) setSelectedStatus(report.status);
+  }, [report?.id, report?.status]);
 
   if (!report)
     return (
@@ -30,12 +35,26 @@ const ReportDetailModal = () => {
     );
 
   const addNote = () => {
-    if (!note.trim()) return;
+    const trimmedNote = note.trim();
+    const statusChanged = selectedStatus !== report.status;
+    if (!trimmedNote && !statusChanged) return;
+    updateReport(report.id, { status: selectedStatus });
+    if (trimmedNote) {
+      setNotes((items) => [
+        { text: trimmedNote, date: new Date().toLocaleString() },
+        ...items,
+      ]);
+    }
+    setNote("");
+  };
+
+  const resolveCase = () => {
+    updateReport(report.id, { status: "RESOLVED" });
+    setSelectedStatus("RESOLVED");
     setNotes((items) => [
-      { text: note.trim(), date: new Date().toLocaleString() },
+      { text: "Case marked as resolved.", date: new Date().toLocaleString() },
       ...items,
     ]);
-    setNote("");
   };
 
   return (
@@ -96,10 +115,8 @@ const ReportDetailModal = () => {
             Case status
             <select
               className="mt-2 block h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm"
-              value={report.status}
-              onChange={(event) =>
-                updateReport(report.id, { status: event.target.value })
-              }
+              value={selectedStatus}
+              onChange={(event) => setSelectedStatus(event.target.value)}
             >
               {statusOptions.map((value) => (
                 <option key={value} value={value}>
@@ -153,11 +170,20 @@ const ReportDetailModal = () => {
           placeholder="Add an update to this case…"
         />
         <button
-          className="mt-3 rounded-lg bg-[#185835] px-5 py-3 text-sm font-semibold text-white"
+          className="mt-3 rounded-lg bg-[#185835] px-5 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!note.trim() && selectedStatus === report.status}
           onClick={addNote}
         >
           Post update
         </button>
+        {report.status !== "RESOLVED" && report.status !== "REJECTED" && (
+          <button
+            className="ml-3 mt-3 rounded-lg border border-green-800 px-5 py-3 text-base font-semibold text-green-900 hover:bg-green-50"
+            onClick={resolveCase}
+          >
+            Mark as resolved
+          </button>
+        )}
       </div>
     </AdminLayout>
   );

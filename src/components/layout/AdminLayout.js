@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Brand from "../Brand";
 import { useDashboard } from "../../lib/AppContext";
 
@@ -12,7 +12,9 @@ const menu = [
 
 const AdminLayout = ({ title, children }) => {
   const [open, setOpen] = useState(() => window.innerWidth >= 1024);
+  const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { reports } = useDashboard();
 
   return (
@@ -87,12 +89,44 @@ const AdminLayout = ({ title, children }) => {
               <b className="text-gray-800">{title}</b>
             </span>
           </div>
-          <div className="hidden items-center gap-5 text-sm text-gray-600 sm:flex">
-            <span>
-              <i className="mr-2 inline-block h-2 w-2 rounded-full bg-green-500" />
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span className="hidden items-center gap-2 sm:flex">
+              <span className="relative flex h-3 w-3" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-green-600" />
+              </span>
               Live updates
             </span>
-            <span className="font-semibold">Thoko Kalua</span>
+            <div className="relative">
+              <button
+                aria-label="Open profile menu"
+                aria-expanded={profileOpen}
+                className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-700"
+                onClick={() => setProfileOpen((current) => !current)}
+              >
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e5e8d9] font-bold text-[#526c46]">
+                  TK
+                </span>
+                <span className="hidden text-left sm:block">
+                  <b className="block text-sm text-gray-800">Thoko Kalua</b>
+                  <small className="text-xs text-gray-500">Administrator</small>
+                </span>
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                  <p className="px-3 py-2 text-xs text-gray-500">Signed in as administrator</p>
+                  <button
+                    className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      setProfileOpen(false);
+                      navigate("/login");
+                    }}
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7 lg:px-10">
