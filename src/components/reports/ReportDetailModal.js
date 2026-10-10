@@ -11,13 +11,16 @@ const ReportDetailModal = () => {
   const navigate = useNavigate();
   const { reports, updateReport } = useDashboard();
   const report = reports.find((item) => item.id === id);
+  const reportStatus = report?.status;
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState([]);
-  const [selectedStatus, setSelectedStatus] = useState(report?.status || "SUBMITTED");
+  const [selectedStatus, setSelectedStatus] = useState(
+    reportStatus || "SUBMITTED",
+  );
 
   useEffect(() => {
-    if (report) setSelectedStatus(report.status);
-  }, [report?.id, report?.status]);
+    if (reportStatus) setSelectedStatus(reportStatus);
+  }, [reportStatus]);
 
   if (!report)
     return (
