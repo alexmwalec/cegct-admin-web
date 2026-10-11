@@ -26,7 +26,7 @@ const Reports = () => {
   );
 
   return (
-    <AdminLayout title="Reports queue">
+    <AdminLayout title="Reports">
       <div className="mb-7">
         <p className="text-xs font-bold tracking-widest text-gray-500">
           CASE MANAGEMENT
