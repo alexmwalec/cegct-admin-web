@@ -5,5 +5,3 @@ export const socket = io(API_ORIGIN, {
   autoConnect: false,
   auth: (callback) => callback({ token: localStorage.getItem("cegct_token") }),
 });
-
-

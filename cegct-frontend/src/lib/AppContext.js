@@ -13,13 +13,13 @@ export const DashboardProvider = ({ children }) => {
   const [error, setError] = useState("");
   const [realtimeConnected, setRealtimeConnected] = useState(socket.connected);
 
-  const loadReports = useCallback(async () => {
+  const loadReports = useCallback(async ({ silent = false } = {}) => {
     if (!token) {
       setReports([]);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const result = await apiRequest("/reports");
       setReports(result.data || []);
@@ -27,7 +27,7 @@ export const DashboardProvider = ({ children }) => {
     } catch (requestError) {
       setError(requestError.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [token]);
 
@@ -50,7 +50,10 @@ export const DashboardProvider = ({ children }) => {
       .catch((requestError) => setError(requestError.message));
 
     socket.auth = { token };
-    const onConnect = () => setRealtimeConnected(true);
+    const onConnect = () => {
+      setRealtimeConnected(true);
+      loadReports({ silent: true });
+    };
     const onDisconnect = () => setRealtimeConnected(false);
     const onNewReport = (report) => setReports((items) => [report, ...items.filter((item) => item.id !== report.id)]);
     const onReportUpdated = (report) => setReports((items) => items.map((item) => item.id === report.id ? { ...item, ...report } : item));
@@ -59,7 +62,14 @@ export const DashboardProvider = ({ children }) => {
     socket.on("admin:new_report", onNewReport);
     socket.on("report:updated", onReportUpdated);
     socket.connect();
+    const refreshVisibleReports = () => {
+      if (document.visibilityState === "visible") loadReports({ silent: true });
+    };
+    const refreshTimer = window.setInterval(refreshVisibleReports, 15000);
+    document.addEventListener("visibilitychange", refreshVisibleReports);
     return () => {
+      window.clearInterval(refreshTimer);
+      document.removeEventListener("visibilitychange", refreshVisibleReports);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("admin:new_report", onNewReport);
