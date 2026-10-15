@@ -45,6 +45,45 @@ async function userCanReadReport(user, reportId) {
   );
   return rows.length > 0;
 }
+// src/routes.js
+router.post(
+  "/auth/register",
+  asyncRoute(async (req, res) => {
+    const name = String(req.body.name || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+    const phone = String(req.body.phone || "").trim();
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "Name, email, and password are required." });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters." });
+    }
+
+    const [existing] = await pool.execute(
+      "SELECT id FROM users WHERE email = ? LIMIT 1",
+      [email]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "An account with this email already exists." });
+    }
+
+    const id = require("crypto").randomUUID();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    
+    await pool.execute(
+      "INSERT INTO users (id, name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, 'CITIZEN', ?)",
+      [id, name, email, passwordHash, phone || null]
+    );
+
+    const safeUser = { id, name, email, role: "CITIZEN", phone: phone || null };
+    const token = issueToken(safeUser);
+
+    return res.status(201).json({ token, user: safeUser });
+  })
+);
 
 router.post(
   "/auth/login",
