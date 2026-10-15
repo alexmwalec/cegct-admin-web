@@ -112,7 +112,7 @@ async function startServer() {
        GROUP BY STR_TO_DATE(LEFT(id, 10), '%d-%m-%Y')
        ON DUPLICATE KEY UPDATE last_number = GREATEST(last_number, VALUES(last_number))`,
     );
-    server.listen(port, () => {
+    server.listen(port, "0.0.0.0", () => {
       console.log(`CEGCT API and Socket.IO listening on port ${port}`);
     });
   } catch (error) {
