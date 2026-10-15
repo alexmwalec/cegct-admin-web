@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
-import { API_ORIGIN } from "./api";
+import { SOCKET_URL } from "./api";
 
-export const socket = io(API_ORIGIN, {
+export const socket = io(SOCKET_URL, {
   autoConnect: false,
   auth: (callback) => callback({ token: localStorage.getItem("cegct_token") }),
 });
