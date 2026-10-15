@@ -11,12 +11,13 @@ import { formatDate } from "../../lib/utils";
 const ReportDetailModal = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { reports, officers, updateReport } = useDashboard();
+  const { reports, updateReport } = useDashboard();
   const report = reports.find((item) => item.id === id);
   const reportStatus = report?.status;
+  const reportPhotoUrl = report?.photoUrl;
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState([]);
-  const [selectedOfficer, setSelectedOfficer] = useState(report?.assignedOfficerId || "");
+  const [evidenceError, setEvidenceError] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(
     reportStatus || "SUBMITTED",
   );
@@ -26,8 +27,8 @@ const ReportDetailModal = () => {
   }, [reportStatus]);
 
   useEffect(() => {
-    setSelectedOfficer(report?.assignedOfficerId || "");
-  }, [report?.assignedOfficerId, report?.id]);
+    setEvidenceError(false);
+  }, [reportPhotoUrl]);
 
   useEffect(() => {
     if (!id) return;
@@ -133,11 +134,11 @@ const ReportDetailModal = () => {
             {report.latitude}, {report.longitude}
           </p>
         </div>
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-semibold">
+        <div className="mb-6">
+          <label className="block text-sm font-semibold">
             Case status
             <select
-              className="mt-2 block h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm"
+              className="mt-2 block h-11 w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 text-sm"
               value={selectedStatus}
               onChange={(event) => setSelectedStatus(event.target.value)}
             >
@@ -148,26 +149,28 @@ const ReportDetailModal = () => {
               ))}
             </select>
           </label>
-          <label className="text-sm font-semibold">
-            Assigned officer
-            <select
-              className="mt-2 block h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm"
-              value={selectedOfficer}
-              onChange={(event) => {
-                const officerId = event.target.value;
-                setSelectedOfficer(officerId);
-                updateReport(report.id, { assignedOfficerId: officerId || null });
-              }}
-            >
-              <option value="">Unassigned</option>
-              {officers.map((officer) => (
-                <option key={officer.id} value={officer.id}>
-                  {officer.name}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
+        <section className="mb-7 rounded-lg border border-gray-200 p-4">
+          <h2 className="mb-3 text-lg font-bold">Citizen evidence</h2>
+          {reportPhotoUrl && !evidenceError ? (
+            <a href={reportPhotoUrl} target="_blank" rel="noreferrer">
+              <img
+                alt={`Evidence submitted for case ${report.id}`}
+                className="max-h-[32rem] w-full rounded-lg bg-gray-50 object-contain"
+                loading="lazy"
+                onError={() => setEvidenceError(true)}
+                src={reportPhotoUrl}
+              />
+              <span className="mt-2 inline-block text-sm font-semibold text-green-800">
+                Open original image
+              </span>
+            </a>
+          ) : (
+            <p className="text-sm text-gray-500">
+              {evidenceError ? "The evidence image could not be loaded. Check that the mobile app saved a publicly accessible image URL." : "No photo evidence was attached to this report."}
+            </p>
+          )}
+        </section>
         <h2 className="mb-3 text-lg font-bold">Case timeline</h2>
         <div className="mb-6 space-y-4 border-l-2 border-green-100 pl-4">
           {notes.map((item) => (

@@ -36,7 +36,7 @@ const Reports = () => {
           Reports
         </h1>
         <p className="text-base text-gray-600">
-          Review, assign and track environmental cases.
+          Review and track environmental cases.
         </p>
       </div>
       <section className="overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -81,7 +81,6 @@ const Reports = () => {
                   "STATUS",
                   "LOCATION",
                   "DATE",
-                  "OFFICER",
                 ].map((heading) => (
                   <th className="px-4 py-3" key={heading}>
                     {heading}
@@ -112,7 +111,6 @@ const Reports = () => {
                   </td>
                   <td className="px-4 py-4">{report.location}</td>
                   <td className="px-4 py-4">{formatDate(report.createdAt || report.date)}</td>
-                  <td className="px-4 py-4">{report.officer}</td>
                 </tr>
               ))}
             </tbody>
