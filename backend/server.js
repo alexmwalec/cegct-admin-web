@@ -53,6 +53,7 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   if (["ADMIN", "INSPECTOR"].includes(socket.user.role)) socket.join("admin_reports");
+  if (socket.user.role === "CITIZEN") socket.join(`user_${socket.user.sub}`);
   socket.on("join_report_room", async (reportId) => {
     if (typeof reportId !== "string" || reportId.length > 64) return;
     if (["ADMIN", "INSPECTOR"].includes(socket.user.role)) {
@@ -90,9 +91,38 @@ server.on("error", (error) => {
   console.error("Could not start the CEGCT API:", error.message);
   process.exit(1);
 });
-server.listen(port, () => {
-  console.log(`CEGCT API and Socket.IO listening on port ${port}`);
-});
+
+async function startServer() {
+  try {
+    // Existing installations may not yet have this table. Ensure it exists
+    // before accepting report submissions, then seed counters from old IDs.
+    await pool.execute(
+      `CREATE TABLE IF NOT EXISTS report_sequences (
+        report_date DATE PRIMARY KEY,
+        last_number INT UNSIGNED NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB`,
+    );
+    await pool.execute(
+      `INSERT INTO report_sequences (report_date, last_number)
+       SELECT STR_TO_DATE(LEFT(id, 10), '%d-%m-%Y'),
+              MAX(CAST(SUBSTRING_INDEX(id, 'ID', -1) AS UNSIGNED))
+       FROM reports
+       WHERE id REGEXP '^[0-9]{2}-[0-9]{2}-[0-9]{4}-ID[0-9]+$'
+       GROUP BY STR_TO_DATE(LEFT(id, 10), '%d-%m-%Y')
+       ON DUPLICATE KEY UPDATE last_number = GREATEST(last_number, VALUES(last_number))`,
+    );
+    server.listen(port, () => {
+      console.log(`CEGCT API and Socket.IO listening on port ${port}`);
+    });
+  } catch (error) {
+    console.error("Could not initialize the CEGCT database:", error.message);
+    await pool.end();
+    process.exit(1);
+  }
+}
+
+startServer();
 
 function shutdown() {
   io.close(async () => {

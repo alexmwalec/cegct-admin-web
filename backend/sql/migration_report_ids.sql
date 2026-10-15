@@ -1,4 +1,5 @@
--- Run this once against an existing CEGCT database before restarting the API.
+-- The API now runs this migration automatically at startup. This file is also
+-- provided for manual setup or repair of an existing CEGCT database.
 -- Report IDs generated after this migration use DD-MM-YYYY-ID001 per Malawi date.
 CREATE TABLE IF NOT EXISTS report_sequences (
   report_date DATE PRIMARY KEY,

@@ -202,19 +202,27 @@ router.get("/reports", requireAuth, asyncRoute(async (req, res) => {
 }));
 
 router.post("/reports", requireAuth, asyncRoute(async (req, res) => {
-  const {
-    category,
-    title,
-    description,
-    urgency = "MEDIUM",
-    latitude,
-    longitude,
-    address,
-  } = req.body;
-  const photoUrl = req.body.photoUrl || req.body.photo_url || req.body.imageUrl || req.body.evidenceUrl || null;
-  if (!category || !title || !Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude)) ||
+  const body = req.body || {};
+  const location = body.location;
+  const coordinates = Array.isArray(location?.coordinates)
+    ? location.coordinates
+    : Array.isArray(location)
+      ? location
+      : null;
+  const category = String(body.category || body.category_name || body.categoryName || "Other").trim();
+  const description = String(body.description || body.details || "");
+  const title = String(body.title || category || description.slice(0, 100)).trim();
+  const latitude = body.latitude ?? body.lat ?? location?.latitude ?? coordinates?.[1];
+  const longitude = body.longitude ?? body.lng ?? location?.longitude ?? coordinates?.[0];
+  const urgency = body.urgency || body.severity || "MEDIUM";
+  const address = body.address || body.address_text || body.locationAddress || (typeof location === "string" ? location : "");
+  const photoUrl = body.photoUrl || body.photo_url || body.imageUrl || body.image_url || body.evidenceUrl || body.evidence_url || null;
+  if (!category || !Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude)) ||
       Number(latitude) < -90 || Number(latitude) > 90 || Number(longitude) < -180 || Number(longitude) > 180) {
-    return res.status(400).json({ error: "Category, title, latitude and longitude are required." });
+    return res.status(400).json({
+      error: "A category and valid GPS coordinates are required.",
+      acceptedCoordinateFields: ["latitude/longitude", "lat/lng", "location.coordinates [longitude, latitude]"],
+    });
   }
   if (!validUrgencies.has(urgency)) return res.status(400).json({ error: "Invalid urgency value." });
   if (photoUrl && (typeof photoUrl !== "string" || photoUrl.length > 512)) {
@@ -254,6 +262,7 @@ router.post("/reports", requireAuth, asyncRoute(async (req, res) => {
   const row = await findReport(id);
   const report = shapeReport(row);
   req.io.to("admin_reports").emit("admin:new_report", report);
+  req.io.to(`user_${req.user.sub}`).emit("report:created", report);
   res.status(201).json({ data: report });
 }));
 
@@ -322,12 +331,14 @@ router.patch("/reports/:id", requireAuth, requireStaff, asyncRoute(async (req, r
   req.io.to("admin_reports").emit("report:updated", report);
   req.io.to(`report_${report.id}`).emit("report:updated", report);
   if (status && status !== previousStatus) {
-    req.io.to(`report_${report.id}`).emit("report:status_changed", {
+    const statusEvent = {
       reportId: report.id,
       status: report.status,
       updatedAt: report.updatedAt,
       report,
-    });
+    };
+    req.io.to(`report_${report.id}`).emit("report:status_changed", statusEvent);
+    req.io.to(`user_${report.reporterId}`).emit("report:status_changed", statusEvent);
   }
   res.json({ data: report });
 }));
