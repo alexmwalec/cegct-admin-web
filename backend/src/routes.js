@@ -86,6 +86,40 @@ router.post(
 );
 
 router.post(
+  "/auth/mobile/login",
+  loginLimiter,
+  asyncRoute(async (req, res) => {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+
+    const [rows] = await pool.execute(
+      "SELECT id, name, email, password_hash, role, phone FROM users WHERE email = ? LIMIT 1",
+      [email],
+    );
+    const user = rows[0];
+    const passwordMatches = user && (await bcrypt.compare(password, user.password_hash));
+    if (!passwordMatches) {
+      return res.status(401).json({ error: "Invalid email or password." });
+    }
+    if (user.role !== "CITIZEN") {
+      return res.status(403).json({ error: "This endpoint is for citizen accounts. Use the admin login for staff accounts." });
+    }
+
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+    };
+    return res.json({ token: issueToken(safeUser), user: safeUser });
+  }),
+);
+
+router.post(
   "/auth/login",
   loginLimiter,
   asyncRoute(async (req, res) => {
