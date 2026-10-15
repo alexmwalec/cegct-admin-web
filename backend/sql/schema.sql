@@ -49,6 +49,12 @@ CREATE TABLE IF NOT EXISTS reports (
   INDEX idx_reports_category_created (category_name, created_at)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS report_sequences (
+  report_date DATE PRIMARY KEY,
+  last_number INT UNSIGNED NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS chat_messages (
   id VARCHAR(36) PRIMARY KEY,
   report_id VARCHAR(36) NOT NULL,

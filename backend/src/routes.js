@@ -37,6 +37,16 @@ async function findReport(reportId) {
   return rows[0] || null;
 }
 
+function getReportDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Blantyre",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  return Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+}
+
 async function userCanReadReport(user, reportId) {
   if (["ADMIN", "INSPECTOR"].includes(user.role)) return true;
   const [rows] = await pool.execute(
@@ -192,20 +202,55 @@ router.get("/reports", requireAuth, asyncRoute(async (req, res) => {
 }));
 
 router.post("/reports", requireAuth, asyncRoute(async (req, res) => {
-  const { category, title, description, urgency = "MEDIUM", latitude, longitude, address, photoUrl } = req.body;
+  const {
+    category,
+    title,
+    description,
+    urgency = "MEDIUM",
+    latitude,
+    longitude,
+    address,
+  } = req.body;
+  const photoUrl = req.body.photoUrl || req.body.photo_url || req.body.imageUrl || req.body.evidenceUrl || null;
   if (!category || !title || !Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude)) ||
       Number(latitude) < -90 || Number(latitude) > 90 || Number(longitude) < -180 || Number(longitude) > 180) {
     return res.status(400).json({ error: "Category, title, latitude and longitude are required." });
   }
   if (!validUrgencies.has(urgency)) return res.status(400).json({ error: "Invalid urgency value." });
-  const id = require("crypto").randomUUID();
+  if (photoUrl && (typeof photoUrl !== "string" || photoUrl.length > 512)) {
+    return res.status(400).json({ error: "The photo URL must be 512 characters or fewer." });
+  }
+  const dateParts = getReportDateParts();
+  const reportDate = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
+  const connection = await pool.getConnection();
+  let id;
   const point = `POINT(${Number(longitude)} ${Number(latitude)})`;
-  await pool.execute(
-    `INSERT INTO reports (id, user_id, category_name, title, description, urgency, location, address_text, photo_url)
-     VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326, 'axis-order=long-lat'), ?, ?)`,
-    [id, req.user.sub, String(category).slice(0, 50), String(title).slice(0, 255), description || null,
-      urgency, point, address || null, photoUrl || null],
-  );
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `INSERT INTO report_sequences (report_date, last_number) VALUES (?, 1)
+       ON DUPLICATE KEY UPDATE last_number = last_number + 1`,
+      [reportDate],
+    );
+    const [sequenceRows] = await connection.execute(
+      "SELECT last_number FROM report_sequences WHERE report_date = ? FOR UPDATE",
+      [reportDate],
+    );
+    const number = String(sequenceRows[0].last_number).padStart(3, "0");
+    id = `${dateParts.day}-${dateParts.month}-${dateParts.year}-ID${number}`;
+    await connection.execute(
+      `INSERT INTO reports (id, user_id, category_name, title, description, urgency, location, address_text, photo_url)
+       VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326, 'axis-order=long-lat'), ?, ?)`,
+      [id, req.user.sub, String(category).slice(0, 50), String(title).slice(0, 255), description || null,
+        urgency, point, address || null, photoUrl],
+    );
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
   const row = await findReport(id);
   const report = shapeReport(row);
   req.io.to("admin_reports").emit("admin:new_report", report);
@@ -223,13 +268,15 @@ router.patch("/reports/:id", requireAuth, requireStaff, asyncRoute(async (req, r
   const { status, assignedOfficerId, note } = req.body;
   const connection = await pool.getConnection();
   let row;
+  let previousStatus;
   try {
     await connection.beginTransaction();
-    const [existingRows] = await connection.execute("SELECT id FROM reports WHERE id = ? FOR UPDATE", [req.params.id]);
+    const [existingRows] = await connection.execute("SELECT id, status FROM reports WHERE id = ? FOR UPDATE", [req.params.id]);
     if (!existingRows.length) {
       await connection.rollback();
       return res.status(404).json({ error: "Report not found." });
     }
+    previousStatus = existingRows[0].status;
     const updates = [];
     const values = [];
     if (status !== undefined) {
@@ -274,6 +321,14 @@ router.patch("/reports/:id", requireAuth, requireStaff, asyncRoute(async (req, r
   const report = shapeReport(row);
   req.io.to("admin_reports").emit("report:updated", report);
   req.io.to(`report_${report.id}`).emit("report:updated", report);
+  if (status && status !== previousStatus) {
+    req.io.to(`report_${report.id}`).emit("report:status_changed", {
+      reportId: report.id,
+      status: report.status,
+      updatedAt: report.updatedAt,
+      report,
+    });
+  }
   res.json({ data: report });
 }));
 
