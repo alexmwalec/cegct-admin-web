@@ -1,0 +1,26 @@
+{
+  "name": "cegct-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express, MySQL and Socket.IO API for the CEGCT admin dashboard and mobile clients.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "create-admin": "node src/create-admin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.24.6",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
