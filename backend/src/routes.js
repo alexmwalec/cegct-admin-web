@@ -1,6 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const rateLimit = require("express-rate-limit");
+const multer = require("multer");
+const cloudinary = require("./cloudinary");
 const pool = require("./db");
 const { issueToken, requireAuth, requireStaff, requireAdmin } = require("./auth");
 const { shapeReport } = require("./report-shape");
@@ -23,6 +25,50 @@ const validStatuses = new Set([
   "REOPENED",
 ]);
 const validUrgencies = new Set(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
+const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const parseReportImage = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1, fields: 20, parts: 21 },
+  fileFilter: (_req, file, callback) => {
+    if (!allowedImageTypes.has(file.mimetype)) {
+      const error = new Error("Evidence must be a JPEG, PNG, or WebP image.");
+      error.statusCode = 415;
+      return callback(error);
+    }
+    callback(null, true);
+  },
+}).single("image");
+
+function handleReportImageUpload(req, res, next) {
+  parseReportImage(req, res, (error) => {
+    if (!error) return next();
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ error: "Evidence images must be 10 MB or smaller." });
+    }
+    if (error.code === "LIMIT_UNEXPECTED_FILE") {
+      return res.status(400).json({ error: "Attach one image using the multipart field named 'image'." });
+    }
+    return res.status(error.statusCode || 400).json({ error: error.message || "Invalid image upload." });
+  });
+}
+
+function uploadReportImage(file, userId) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "image",
+        folder: `cegct/report-evidence/${userId}`,
+        public_id: require("crypto").randomUUID(),
+        overwrite: false,
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      },
+    );
+    uploadStream.end(file.buffer);
+  });
+}
 
 async function findReport(reportId) {
   const [rows] = await pool.execute(
@@ -201,7 +247,7 @@ router.get("/reports", requireAuth, asyncRoute(async (req, res) => {
   res.json({ data: rows.map(shapeReport) });
 }));
 
-router.post("/reports", requireAuth, asyncRoute(async (req, res) => {
+router.post("/reports", requireAuth, handleReportImageUpload, asyncRoute(async (req, res) => {
   const body = req.body || {};
   const location = body.location;
   const coordinates = Array.isArray(location?.coordinates)
@@ -216,7 +262,7 @@ router.post("/reports", requireAuth, asyncRoute(async (req, res) => {
   const longitude = body.longitude ?? body.lng ?? location?.longitude ?? coordinates?.[0];
   const urgency = body.urgency || body.severity || "MEDIUM";
   const address = body.address || body.address_text || body.locationAddress || (typeof location === "string" ? location : "");
-  const photoUrl = body.photoUrl || body.photo_url || body.imageUrl || body.image_url || body.evidenceUrl || body.evidence_url || null;
+  let photoUrl = body.photoUrl || body.photo_url || body.imageUrl || body.image_url || body.evidenceUrl || body.evidence_url || null;
   if (!category || !Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude)) ||
       Number(latitude) < -90 || Number(latitude) > 90 || Number(longitude) < -180 || Number(longitude) > 180) {
     return res.status(400).json({
@@ -225,15 +271,33 @@ router.post("/reports", requireAuth, asyncRoute(async (req, res) => {
     });
   }
   if (!validUrgencies.has(urgency)) return res.status(400).json({ error: "Invalid urgency value." });
+  if (req.file && !(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)) {
+    return res.status(503).json({ error: "Image uploads are not configured on the API." });
+  }
   if (photoUrl && (typeof photoUrl !== "string" || photoUrl.length > 512)) {
     return res.status(400).json({ error: "The photo URL must be 512 characters or fewer." });
   }
+  let uploadedAsset = null;
+  if (req.file) {
+    try {
+      uploadedAsset = await uploadReportImage(req.file, req.user.sub);
+      photoUrl = uploadedAsset.secure_url;
+      if (!photoUrl || photoUrl.length > 512) {
+        await cloudinary.uploader.destroy(uploadedAsset.public_id, { resource_type: "image" });
+        return res.status(502).json({ error: "Cloudinary returned an invalid image URL." });
+      }
+    } catch (error) {
+      console.error("Cloudinary report image upload failed:", error.message);
+      return res.status(502).json({ error: "Could not upload report evidence. The report was not saved; please retry." });
+    }
+  }
   const dateParts = getReportDateParts();
   const reportDate = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
-  const connection = await pool.getConnection();
+  let connection;
   let id;
   const point = `POINT(${Number(longitude)} ${Number(latitude)})`;
   try {
+    connection = await pool.getConnection();
     await connection.beginTransaction();
     await connection.execute(
       `INSERT INTO report_sequences (report_date, last_number) VALUES (?, 1)
@@ -254,10 +318,15 @@ router.post("/reports", requireAuth, asyncRoute(async (req, res) => {
     );
     await connection.commit();
   } catch (error) {
-    await connection.rollback();
+    if (connection) await connection.rollback().catch(() => {});
+    if (uploadedAsset) {
+      await cloudinary.uploader.destroy(uploadedAsset.public_id, { resource_type: "image" }).catch((cleanupError) => {
+        console.error("Could not remove unlinked Cloudinary evidence:", cleanupError.message);
+      });
+    }
     throw error;
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
   const row = await findReport(id);
   const report = shapeReport(row);
