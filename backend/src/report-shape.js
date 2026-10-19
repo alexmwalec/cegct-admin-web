@@ -13,7 +13,7 @@ function shapeReport(row) {
     updatedAt: row.updated_at,
     reporter: row.reporter_name || row.name || "Citizen",
     reporterId: row.user_id,
-    officer: row.officer_name || "Unassigned",
+    officer: row.officer_name || "",
     assignedOfficerId: row.assigned_officer_id || null,
     description: row.description || "",
     title: row.title || row.category_name || row.category,
