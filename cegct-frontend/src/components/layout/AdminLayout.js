@@ -6,6 +6,7 @@ import { useDashboard } from "../../lib/AppContext";
 const menu = [
   ["/dashboard", "▦", "Overview"],
   ["/reports", "▤", "Reports"],
+  ["/process", "⇄", "Reporting process"],
   ["/analytics", "◷", "Analytics"],
   ["/officers", "♙", "Officers"],
 ];

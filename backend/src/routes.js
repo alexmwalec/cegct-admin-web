@@ -444,6 +444,8 @@ router.get("/reports/:id/messages", requireAuth, asyncRoute(async (req, res) => 
 
 router.post("/reports/:id/messages", requireAuth, asyncRoute(async (req, res) => {
   if (!(await userCanReadReport(req.user, req.params.id))) return res.status(403).json({ error: "You cannot access this report." });
+  const [reportRows] = await pool.execute("SELECT user_id FROM reports WHERE id = ? LIMIT 1", [req.params.id]);
+  if (!reportRows.length) return res.status(404).json({ error: "Report not found." });
   const message = String(req.body.message || "").trim();
   if (!message || message.length > 4000) return res.status(400).json({ error: "Message must contain 1 to 4000 characters." });
   const id = require("crypto").randomUUID();
@@ -455,7 +457,14 @@ router.post("/reports/:id/messages", requireAuth, asyncRoute(async (req, res) =>
     [id],
   );
   const data = rows[0];
-  req.io.to(`report_${req.params.id}`).emit("chat:new_message", data);
+  if (["ADMIN", "INSPECTOR"].includes(req.user.role)) {
+    req.io
+      .to(`report_${req.params.id}`)
+      .to(`user_${reportRows[0].user_id}`)
+      .emit("chat:new_message", data);
+  } else {
+    req.io.to(`report_${req.params.id}`).emit("chat:new_message", data);
+  }
   res.status(201).json({ data });
 }));
 

@@ -15,15 +15,6 @@ const Dashboard = () => {
     return () => window.clearInterval(timer);
   }, []);
 
-  const hour = Number(
-    new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      hourCycle: "h23",
-      timeZone: "Africa/Blantyre",
-    }).format(now),
-  );
-  const greeting = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
-  const adminName = user?.name || "Administrator";
   const today = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     month: "long",
@@ -50,9 +41,6 @@ const Dashboard = () => {
           <p className="text-xs font-bold tracking-widest text-gray-500">
             {today}
           </p>
-          <h1 className="my-2 font-['Manrope',sans-serif] text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Good {greeting}, {adminName}
-          </h1>
           <p className="text-base text-gray-600">
             Here’s what’s happening across your region today.
           </p>
