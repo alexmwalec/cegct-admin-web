@@ -7,7 +7,7 @@ import RecentReports from "../components/dashboard/RecentReports";
 import { useDashboard } from "../lib/AppContext";
 
 const Dashboard = () => {
-  const { reports, loading, user } = useDashboard();
+  const { reports, loading } = useDashboard();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
