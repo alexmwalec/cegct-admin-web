@@ -7,6 +7,7 @@ import { useDashboard } from "../../lib/AppContext";
 import { statusOptions, labelCase } from "../../lib/reportData";
 import { apiRequest } from "../../services/api";
 import { formatDate } from "../../lib/utils";
+import CaseConversation from "../chat/CaseConversation";
 
 const ReportDetailModal = () => {
   const { id } = useParams();
@@ -110,6 +111,11 @@ const ReportDetailModal = () => {
         </p>
         <div className="mb-6 grid gap-4 rounded-lg bg-gray-50 p-4 sm:grid-cols-2">
           <p className="text-sm">
+            <b className="mb-1 block text-xs uppercase text-gray-500">Citizen case number</b>
+            <span className="font-bold text-[#185835]">{report.id}</span>
+            <span className="ml-2 text-gray-500">Share this number with the reporter.</span>
+          </p>
+          <p className="text-sm">
             <b className="mb-1 block text-xs uppercase text-gray-500">
               Location
             </b>
@@ -171,6 +177,7 @@ const ReportDetailModal = () => {
             </p>
           )}
         </section>
+        <CaseConversation report={report} />
         <h2 className="mb-3 text-lg font-bold">Case timeline</h2>
         <div className="mb-6 space-y-4 border-l-2 border-green-100 pl-4">
           {notes.map((item) => (

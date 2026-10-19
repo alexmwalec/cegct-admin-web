@@ -8,6 +8,7 @@ import Reports from "./pages/reports";
 import LiveReportMap from "./components/dashboard/LiveReportMap";
 import RecentReports from "./components/dashboard/RecentReports";
 import ReportDetailModal from "./components/reports/ReportDetailModal";
+import ReportingProcess from "./pages/process";
 import { DashboardProvider, useDashboard } from "./lib/AppContext";
 
 const StaffRoute = ({ children }) => {
@@ -25,6 +26,7 @@ const App = () => (
         <Route path="/dashboard/map" element={<StaffRoute><LiveReportMap /></StaffRoute>} />
         <Route path="/dashboard/recent" element={<StaffRoute><RecentReports /></StaffRoute>} />
         <Route path="/reports" element={<StaffRoute><Reports /></StaffRoute>} />
+        <Route path="/process" element={<StaffRoute><ReportingProcess /></StaffRoute>} />
         <Route path="/report/:id" element={<StaffRoute><ReportDetailModal /></StaffRoute>} />
         <Route path="/analytics" element={<StaffRoute><Analytics /></StaffRoute>} />
         <Route path="/officers" element={<StaffRoute><Officers /></StaffRoute>} />
