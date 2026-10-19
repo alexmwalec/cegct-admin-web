@@ -24,6 +24,15 @@ const Dashboard = () => {
   })
     .format(now)
     .toUpperCase();
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: "Africa/Blantyre",
+    }).format(now),
+  );
+  const greeting = hour >= 18 ? "Good evening" : hour >= 12 ? "Good afternoon" : "Good morning";
+  const adminName = user?.name?.trim() || "Administrator";
   const pending = reports.filter((report) =>
     ["SUBMITTED", "UNDER_REVIEW"].includes(report.status),
   ).length;
@@ -38,6 +47,9 @@ const Dashboard = () => {
     <AdminLayout title="Overview">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
+          <h1 className="mb-2 font-['Manrope',sans-serif] text-3xl font-bold text-gray-900 sm:text-4xl">
+            {greeting}, {adminName}
+          </h1>
           <p className="text-xs font-bold tracking-widest text-gray-500">
             {today}
           </p>
