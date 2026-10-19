@@ -15,14 +15,6 @@ const Dashboard = () => {
     return () => window.clearInterval(timer);
   }, []);
 
-  const hour = Number(
-    new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      hourCycle: "h23",
-      timeZone: "Africa/Blantyre",
-    }).format(now),
-  );
-  const adminName = user?.name || "Administrator";
   const today = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     month: "long",
