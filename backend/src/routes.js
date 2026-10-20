@@ -42,6 +42,10 @@ const parseReportImage = multer({
 function handleReportImageUpload(req, res, next) {
   parseReportImage(req, res, (error) => {
     if (!error) return next();
+    console.warn("Report image request rejected during multipart parsing:", {
+      code: error.code || "INVALID_UPLOAD",
+      message: error.message || "Invalid image upload.",
+    });
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(413).json({ error: "Evidence images must be 10 MB or smaller." });
     }
@@ -50,6 +54,14 @@ function handleReportImageUpload(req, res, next) {
     }
     return res.status(error.statusCode || 400).json({ error: error.message || "Invalid image upload." });
   });
+}
+
+function logReportSubmission(req, _res, next) {
+  console.info("Report submission request received:", {
+    contentType: req.get("content-type") || "missing",
+    contentLength: req.get("content-length") || "unknown",
+  });
+  next();
 }
 
 function uploadReportImage(file) {
@@ -247,7 +259,7 @@ router.get("/reports", requireAuth, asyncRoute(async (req, res) => {
   res.json({ data: rows.map(shapeReport) });
 }));
 
-router.post("/reports", requireAuth, handleReportImageUpload, asyncRoute(async (req, res) => {
+router.post("/reports", logReportSubmission, requireAuth, handleReportImageUpload, asyncRoute(async (req, res) => {
   const body = req.body || {};
   const location = body.location;
   const coordinates = Array.isArray(location?.coordinates)
@@ -272,6 +284,11 @@ router.post("/reports", requireAuth, handleReportImageUpload, asyncRoute(async (
   }
   if (!validUrgencies.has(urgency)) return res.status(400).json({ error: "Invalid urgency value." });
   if (req.file && !(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)) {
+    console.error("Report image upload is not configured:", {
+      cloudNamePresent: Boolean(process.env.CLOUDINARY_CLOUD_NAME),
+      apiKeyPresent: Boolean(process.env.CLOUDINARY_API_KEY),
+      apiSecretPresent: Boolean(process.env.CLOUDINARY_API_SECRET),
+    });
     return res.status(503).json({ error: "Image uploads are not configured on the API." });
   }
   if (photoUrl && (typeof photoUrl !== "string" || photoUrl.length > 512)) {
@@ -287,7 +304,11 @@ router.post("/reports", requireAuth, handleReportImageUpload, asyncRoute(async (
         return res.status(502).json({ error: "Cloudinary returned an invalid image URL." });
       }
     } catch (error) {
-      console.error("Cloudinary report image upload failed:", error.message);
+      console.error("Cloudinary report image upload failed:", {
+        name: error.name,
+        message: error.message,
+        httpCode: error.http_code,
+      });
       return res.status(502).json({ error: "Could not upload report evidence. The report was not saved; please retry." });
     }
   }
