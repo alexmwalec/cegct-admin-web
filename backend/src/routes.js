@@ -52,12 +52,12 @@ function handleReportImageUpload(req, res, next) {
   });
 }
 
-function uploadReportImage(file, userId) {
+function uploadReportImage(file) {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         resource_type: "image",
-        folder: `cegct/report-evidence/${userId}`,
+        folder: "cegct",
         public_id: require("crypto").randomUUID(),
         overwrite: false,
       },
@@ -280,7 +280,7 @@ router.post("/reports", requireAuth, handleReportImageUpload, asyncRoute(async (
   let uploadedAsset = null;
   if (req.file) {
     try {
-      uploadedAsset = await uploadReportImage(req.file, req.user.sub);
+      uploadedAsset = await uploadReportImage(req.file);
       photoUrl = uploadedAsset.secure_url;
       if (!photoUrl || photoUrl.length > 512) {
         await cloudinary.uploader.destroy(uploadedAsset.public_id, { resource_type: "image" });
