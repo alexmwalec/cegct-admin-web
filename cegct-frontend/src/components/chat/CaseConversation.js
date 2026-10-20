@@ -146,7 +146,7 @@ const CaseConversation = ({ report }) => {
             value={draft}
           />
           <button
-            className="self-end rounded-lg border border-[#185835] px-5 py-3 text-sm font-semibold text-[#185835] hover:bg-green-50 disabled:opacity-50 sm:self-stretch"
+            className="self-end rounded-lg bg-[#185835] px-5 py-3 text-sm font-semibold text-white hover:bg-[#12472a] disabled:cursor-not-allowed disabled:opacity-50 sm:self-stretch"
             disabled={!draft.trim() || sending}
             type="submit"
           >
