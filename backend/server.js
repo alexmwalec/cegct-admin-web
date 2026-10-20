@@ -13,6 +13,10 @@ const pool = require("./src/db");
 const routes = require("./src/routes");
 
 const app = express();
+// Render terminates inbound connections at its load balancer and forwards
+// the client address in X-Forwarded-For. Trust that single proxy hop so
+// express-rate-limit can identify clients correctly.
+app.set("trust proxy", 1);
 const server = http.createServer(app);
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:3000")
   .split(",")
