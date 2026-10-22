@@ -68,8 +68,12 @@ const ReportDetailModal = () => {
     const updated = await updateReport(report.id, { status: selectedStatus, note: trimmedNote });
     if (!updated) return;
     if (trimmedNote) {
-      const timeline = await apiRequest(`/reports/${encodeURIComponent(report.id)}/timeline`);
-      setNotes(timeline.data || []);
+      try {
+        const timeline = await apiRequest(`/reports/${encodeURIComponent(report.id)}/timeline`);
+        setNotes(timeline.data || []);
+      } catch (_error) {
+        setNotes([]);
+      }
     }
     setNote("");
   };
@@ -78,8 +82,12 @@ const ReportDetailModal = () => {
     const updated = await updateReport(report.id, { status: "RESOLVED", note: "Case marked as resolved." });
     if (!updated) return;
     setSelectedStatus("RESOLVED");
-    const timeline = await apiRequest(`/reports/${encodeURIComponent(report.id)}/timeline`);
-    setNotes(timeline.data || []);
+    try {
+      const timeline = await apiRequest(`/reports/${encodeURIComponent(report.id)}/timeline`);
+      setNotes(timeline.data || []);
+    } catch (_error) {
+      setNotes([]);
+    }
   };
 
   return (
@@ -159,7 +167,7 @@ const ReportDetailModal = () => {
         <section className="mb-7 rounded-lg border border-gray-200 p-4">
           <h2 className="mb-3 text-lg font-bold">Citizen evidence</h2>
           {reportPhotoUrl && !evidenceError ? (
-            <a href={reportPhotoUrl} target="_blank" rel="noreferrer">
+            <div>
               <img
                 alt={`Evidence submitted for case ${report.id}`}
                 className="max-h-[32rem] w-full rounded-lg bg-gray-50 object-contain"
@@ -167,10 +175,7 @@ const ReportDetailModal = () => {
                 onError={() => setEvidenceError(true)}
                 src={reportPhotoUrl}
               />
-              <span className="mt-2 inline-block text-sm font-semibold text-green-800">
-                Open original image
-              </span>
-            </a>
+            </div>
           ) : (
             <p className="text-sm text-gray-500">
               {evidenceError ? "The evidence image could not be loaded. Check that the mobile app saved a publicly accessible image URL." : "No photo evidence was attached to this report."}

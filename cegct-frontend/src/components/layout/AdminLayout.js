@@ -16,7 +16,7 @@ const AdminLayout = ({ title, children }) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { reports, user, logout, error, realtimeConnected } = useDashboard();
+  const { reports, user, logout, realtimeConnected } = useDashboard();
   const displayName = user?.name || "Administrator";
   const initials = displayName.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 
@@ -133,11 +133,6 @@ const AdminLayout = ({ title, children }) => {
           </div>
         </header>
         <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7 lg:px-10">
-          {error && (
-            <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
-              {error}
-            </div>
-          )}
           {children}
         </div>
       </main>
