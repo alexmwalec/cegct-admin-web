@@ -13,6 +13,22 @@ export const DashboardProvider = ({ children }) => {
   const [error, setError] = useState("");
   const [realtimeConnected, setRealtimeConnected] = useState(socket.connected);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem("cegct_token");
+    setToken(null);
+    setUser(null);
+    setReports([]);
+    setOfficers([]);
+    setError("");
+    socket.disconnect();
+    setRealtimeConnected(false);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("cegct:session-expired", logout);
+    return () => window.removeEventListener("cegct:session-expired", logout);
+  }, [logout]);
+
   const loadReports = useCallback(async ({ silent = false } = {}) => {
     if (!token) {
       setReports([]);
@@ -87,16 +103,6 @@ export const DashboardProvider = ({ children }) => {
     setUser(result.user);
     setToken(result.token);
     return result.user;
-  };
-
-  const logout = () => {
-    localStorage.removeItem("cegct_token");
-    setToken(null);
-    setUser(null);
-    setReports([]);
-    setOfficers([]);
-    socket.disconnect();
-    setRealtimeConnected(false);
   };
 
   const updateReport = async (id, updates) => {

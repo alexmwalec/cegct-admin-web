@@ -68,8 +68,12 @@ const ReportDetailModal = () => {
     const updated = await updateReport(report.id, { status: selectedStatus, note: trimmedNote });
     if (!updated) return;
     if (trimmedNote) {
-      const timeline = await apiRequest(`/reports/${encodeURIComponent(report.id)}/timeline`);
-      setNotes(timeline.data || []);
+      try {
+        const timeline = await apiRequest(`/reports/${encodeURIComponent(report.id)}/timeline`);
+        setNotes(timeline.data || []);
+      } catch (_error) {
+        setNotes([]);
+      }
     }
     setNote("");
   };
@@ -78,8 +82,12 @@ const ReportDetailModal = () => {
     const updated = await updateReport(report.id, { status: "RESOLVED", note: "Case marked as resolved." });
     if (!updated) return;
     setSelectedStatus("RESOLVED");
-    const timeline = await apiRequest(`/reports/${encodeURIComponent(report.id)}/timeline`);
-    setNotes(timeline.data || []);
+    try {
+      const timeline = await apiRequest(`/reports/${encodeURIComponent(report.id)}/timeline`);
+      setNotes(timeline.data || []);
+    } catch (_error) {
+      setNotes([]);
+    }
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import AdminLayout from "../../components/layout/AdminLayout";
 import StatusBadge from "../../components/ui/StatusBadge";
@@ -12,6 +12,8 @@ const Reports = () => {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All statuses");
   const [category, setCategory] = useState("All categories");
+  const [page, setPage] = useState(0);
+  const pageSize = 13;
   const categories = [...new Set(reports.map((report) => report.category))];
   const filtered = useMemo(
     () =>
@@ -25,6 +27,13 @@ const Reports = () => {
       ),
     [reports, query, status, category],
   );
+  const pageCount = Math.ceil(filtered.length / pageSize);
+  const currentPage = Math.min(page, Math.max(0, pageCount - 1));
+  const visibleReports = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+
+  useEffect(() => {
+    setPage(0);
+  }, [query, status, category]);
 
   return (
     <AdminLayout title="Reports">
@@ -89,7 +98,7 @@ const Reports = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((report) => (
+              {visibleReports.map((report) => (
                 <tr
                   className="border-t border-gray-100 text-sm hover:bg-gray-50"
                   key={report.id}
@@ -122,6 +131,34 @@ const Reports = () => {
             </p>
           )}
         </div>
+        {!loading && filtered.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-4 py-3">
+            <p className="text-sm text-gray-600">
+              Showing {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, filtered.length)} of {filtered.length} reports
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                aria-label="Previous reports"
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={currentPage === 0}
+                onClick={() => setPage((value) => Math.max(0, value - 1))}
+                type="button"
+              >
+                ← Previous
+              </button>
+              <span className="px-2 text-sm text-gray-600">{currentPage + 1} / {pageCount}</span>
+              <button
+                aria-label="Next reports"
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={currentPage >= pageCount - 1}
+                onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))}
+                type="button"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </AdminLayout>
   );
