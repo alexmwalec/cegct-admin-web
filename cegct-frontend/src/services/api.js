@@ -42,7 +42,7 @@ export async function apiRequest(path, options = {}) {
     }
     if (isLoginRequest) throw new Error(payload.error || "Unable to sign in. Check your email and password.");
     if (response.status === 403) throw new Error("You do not have permission to access this information.");
-    if (response.status >= 500) throw new Error("The server could not complete this request. Your session is still active.");
+    if (response.status >= 500) throw new Error("This request could not be completed. Please try again.");
     throw new Error("This request could not be completed. Please try again.");
   }
   return payload; 
