@@ -113,6 +113,33 @@ async function userCanReadReport(user, reportId) {
   );
   return rows.length > 0;
 }
+
+async function createCitizenNotification(req, { userId, reportId, type, title, body }) {
+  const notification = {
+    id: require("crypto").randomUUID(),
+    recipientUserId: userId,
+    reportId,
+    type,
+    title,
+    body,
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  };
+  try {
+    await pool.execute(
+      `INSERT INTO notifications (id, recipient_user_id, report_id, type, title, body)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [notification.id, userId, reportId, type, title, body],
+    );
+    req.io.to(`user_${userId}`).emit("notification:new", notification);
+    return notification;
+  } catch (error) {
+    // A notification failure must not make an already-saved report update or reply
+    // appear to have failed to the staff member who submitted it.
+    console.error("Could not save citizen notification:", error.message);
+    return null;
+  }
+}
 // src/routes.js
 router.post(
   "/auth/register",
@@ -218,6 +245,25 @@ router.get("/auth/me", requireAuth, asyncRoute(async (req, res) => {
   );
   if (!rows[0]) return res.status(401).json({ error: "Account no longer exists." });
   res.json({ user: rows[0] });
+}));
+
+router.get("/notifications", requireAuth, asyncRoute(async (req, res) => {
+  const [rows] = await pool.execute(
+    `SELECT id, recipient_user_id AS recipientUserId, report_id AS reportId,
+       type, title, body, is_read AS isRead, created_at AS createdAt
+     FROM notifications WHERE recipient_user_id = ? ORDER BY created_at DESC LIMIT 100`,
+    [req.user.sub],
+  );
+  res.json({ data: rows, unreadCount: rows.filter((row) => !row.isRead).length });
+}));
+
+router.patch("/notifications/:id/read", requireAuth, asyncRoute(async (req, res) => {
+  const [result] = await pool.execute(
+    "UPDATE notifications SET is_read = TRUE WHERE id = ? AND recipient_user_id = ?",
+    [req.params.id, req.user.sub],
+  );
+  if (!result.affectedRows) return res.status(404).json({ error: "Notification not found." });
+  res.json({ success: true });
 }));
 
 router.get("/reports", requireAuth, asyncRoute(async (req, res) => {
@@ -429,6 +475,13 @@ router.patch("/reports/:id", requireAuth, requireStaff, asyncRoute(async (req, r
     };
     req.io.to(`report_${report.id}`).emit("report:status_changed", statusEvent);
     req.io.to(`user_${report.reporterId}`).emit("report:status_changed", statusEvent);
+    await createCitizenNotification(req, {
+      userId: report.reporterId,
+      reportId: report.id,
+      type: "REPORT_STATUS",
+      title: "Report status updated",
+      body: `Your case ${report.id} is now ${report.status.replaceAll("_", " ").toLowerCase()}.`,
+    });
   }
   res.json({ data: report });
 }));
@@ -483,6 +536,13 @@ router.post("/reports/:id/messages", requireAuth, asyncRoute(async (req, res) =>
       .to(`report_${req.params.id}`)
       .to(`user_${reportRows[0].user_id}`)
       .emit("chat:new_message", data);
+    await createCitizenNotification(req, {
+      userId: reportRows[0].user_id,
+      reportId: req.params.id,
+      type: "ADMIN_REPLY",
+      title: "New reply on your report",
+      body: `An officer replied to case ${req.params.id}. Tap to view the conversation.`,
+    });
   } else {
     req.io.to(`report_${req.params.id}`).emit("chat:new_message", data);
   }
