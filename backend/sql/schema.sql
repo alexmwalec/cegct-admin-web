@@ -66,6 +66,21 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   INDEX idx_chat_report_sent (report_id, sent_at)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS notifications (
+  id VARCHAR(36) PRIMARY KEY,
+  recipient_user_id VARCHAR(36) NOT NULL,
+  report_id VARCHAR(36) NOT NULL,
+  type VARCHAR(32) NOT NULL,
+  title VARCHAR(160) NOT NULL,
+  body VARCHAR(500) NOT NULL,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_notifications_user FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_report FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
+  INDEX idx_notifications_user_created (recipient_user_id, created_at),
+  INDEX idx_notifications_user_unread (recipient_user_id, is_read)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS inspections (
   id VARCHAR(36) PRIMARY KEY,
   report_id VARCHAR(36) NOT NULL,
