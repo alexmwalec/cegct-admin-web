@@ -56,10 +56,10 @@ export const DashboardProvider = ({ children }) => {
     loadReports();
     apiRequest("/auth/me")
       .then((result) => setUser(result.user))
-      .catch((requestError) => {
-        setError(requestError.message);
-        localStorage.removeItem("cegct_token");
-        setToken(null);
+      .catch(() => {
+        // apiRequest expires the session only for an actual 401 response.
+        // A temporary server/network failure must not sign out a valid user.
+        setError("");
       });
     apiRequest("/officers")
       .then((result) => setOfficers(result.data || []))
