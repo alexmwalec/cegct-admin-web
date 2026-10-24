@@ -132,6 +132,20 @@ async function startServer() {
        GROUP BY STR_TO_DATE(LEFT(id, 10), '%d-%m-%Y')
        ON DUPLICATE KEY UPDATE last_number = GREATEST(last_number, VALUES(last_number))`,
     );
+    // Case conversations use this table for both the admin dashboard and the
+    // citizen app. Create it for existing Aiven databases before serving routes.
+    await pool.execute(
+      `CREATE TABLE IF NOT EXISTS chat_messages (
+        id VARCHAR(36) PRIMARY KEY,
+        report_id VARCHAR(36) NOT NULL,
+        sender_id VARCHAR(36) NOT NULL,
+        message TEXT NOT NULL,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_chat_report FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
+        CONSTRAINT fk_chat_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_chat_report_sent (report_id, sent_at)
+      ) ENGINE=InnoDB`,
+    );
     server.listen(port, "0.0.0.0", () => {
       console.log(`CEGCT API and Socket.IO listening on port ${port}`);
     });
