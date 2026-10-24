@@ -7,6 +7,7 @@ const CaseConversation = ({ report }) => {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const endOfMessagesRef = useRef(null);
@@ -18,27 +19,27 @@ const CaseConversation = ({ report }) => {
       : [...current, message]);
   }, [report.id]);
 
-  useEffect(() => {
-    let active = true;
-    setMessages([]);
+  const loadConversation = useCallback(async () => {
     setLoading(true);
-    setError("");
-    apiRequest(`/reports/${encodeURIComponent(report.id)}/messages`)
-      .then((result) => {
-        if (active) {
-          setMessages((current) => {
-            const combined = new Map((result.data || []).map((message) => [message.id, message]));
-            current.forEach((message) => combined.set(message.id, message));
-            return [...combined.values()].sort((left, right) => new Date(left.sent_at) - new Date(right.sent_at));
-          });
-        }
-      })
-      .catch(() => {
-        if (active) setError("Conversation could not be loaded. Please try again.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+    setLoadError(false);
+    try {
+      const result = await apiRequest(`/reports/${encodeURIComponent(report.id)}/messages`);
+      setMessages((current) => {
+        const combined = new Map((result.data || []).map((message) => [message.id, message]));
+        current.forEach((message) => combined.set(message.id, message));
+        return [...combined.values()].sort((left, right) => new Date(left.sent_at) - new Date(right.sent_at));
       });
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [report.id]);
+
+  useEffect(() => {
+    setMessages([]);
+    setError("");
+    loadConversation();
 
     const joinCaseRoom = () => socket.emit("join_report_room", report.id);
     const handleMessage = (message) => addMessage(message);
@@ -47,12 +48,11 @@ const CaseConversation = ({ report }) => {
     if (socket.connected) joinCaseRoom();
 
     return () => {
-      active = false;
       socket.off("connect", joinCaseRoom);
       socket.off("chat:new_message", handleMessage);
       if (socket.connected) socket.emit("leave_report_room", report.id);
     };
-  }, [report.id, addMessage]);
+  }, [report.id, addMessage, loadConversation]);
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -104,6 +104,12 @@ const CaseConversation = ({ report }) => {
 
       <div aria-live="polite" className="max-h-80 min-h-36 space-y-3 overflow-y-auto bg-gray-50 p-4 sm:p-5">
         {loading && <p className="text-sm text-gray-500">Loading conversation…</p>}
+        {!loading && loadError && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+            <span>Messages could not be loaded. Check your connection and try again.</span>
+            <button className="font-semibold underline" onClick={loadConversation} type="button">Retry</button>
+          </div>
+        )}
         {!loading && messages.length === 0 && (
           <p className="rounded-lg border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
             No messages yet. Use “Send case number to citizen” to acknowledge this report, or write a reply below.
