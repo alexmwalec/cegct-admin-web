@@ -33,8 +33,8 @@ const CaseConversation = ({ report }) => {
           });
         }
       })
-      .catch((requestError) => {
-        if (active) setError(requestError.message || "Could not load the conversation.");
+      .catch(() => {
+        if (active) setError("Conversation could not be loaded. Please try again.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -70,8 +70,8 @@ const CaseConversation = ({ report }) => {
       });
       addMessage(result.data);
       if (text === draft) setDraft("");
-    } catch (requestError) {
-      setError(requestError.message || "Message could not be sent. Please try again.");
+    } catch {
+      setError("Your reply could not be sent. Please try again.");
     } finally {
       setSending(false);
     }
