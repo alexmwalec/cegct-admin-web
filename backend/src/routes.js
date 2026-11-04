@@ -410,7 +410,7 @@ router.get("/reports/:id", requireAuth, asyncRoute(async (req, res) => {
 }));
 
 router.patch("/reports/:id", requireAuth, requireStaff, asyncRoute(async (req, res) => {
-  const { status, assignedOfficerId, note } = req.body;
+  const { status, severity, assignedOfficerId, note } = req.body;
   const connection = await pool.getConnection();
   let row;
   let previousStatus;
@@ -431,6 +431,14 @@ router.patch("/reports/:id", requireAuth, requireStaff, asyncRoute(async (req, r
       }
       updates.push("status = ?");
       values.push(status);
+    }
+    if (severity !== undefined) {
+      if (!validUrgencies.has(severity)) {
+        await connection.rollback();
+        return res.status(400).json({ error: "Invalid report severity." });
+      }
+      updates.push("urgency = ?");
+      values.push(severity);
     }
     if (assignedOfficerId !== undefined) {
       if (assignedOfficerId !== null && assignedOfficerId !== "") {
@@ -466,6 +474,7 @@ router.patch("/reports/:id", requireAuth, requireStaff, asyncRoute(async (req, r
   const report = shapeReport(row);
   req.io.to("admin_reports").emit("report:updated", report);
   req.io.to(`report_${report.id}`).emit("report:updated", report);
+  req.io.to(`user_${report.reporterId}`).emit("report:updated", report);
   if (status && status !== previousStatus) {
     const statusEvent = {
       reportId: report.id,
