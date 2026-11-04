@@ -5,7 +5,7 @@ import StatCard from "../components/dashboard/StatCard";
 import { apiRequest } from "../services/api";
 
 const Analytics = () => {
-  const [range, setRange] = useState("30d");
+  const [range, setRange] = useState("month");
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,6 +51,7 @@ const Analytics = () => {
             value={range}
             onChange={(event) => setRange(event.target.value)}
           >
+            <option value="month">This month</option>
             <option value="7d">This week</option>
             <option value="30d">Last 30 days</option>
             <option value="2m">Last 2 months</option>
@@ -63,7 +64,7 @@ const Analytics = () => {
           title="Reports received"
           value={analytics?.reportsCount ?? "—"}
           change="Report count"
-          note={`for ${range === "7d" ? "this week" : range === "30d" ? "the last 30 days" : range === "2m" ? "the last 2 months" : "this year"}`}
+          note={`for ${range === "month" ? "this month" : range === "7d" ? "this week" : range === "30d" ? "the last 30 days" : range === "2m" ? "the last 2 months" : "this year"}`}
           icon="▤"
         />
         <StatCard
