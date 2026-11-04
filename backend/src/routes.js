@@ -561,19 +561,24 @@ router.post("/reports/:id/messages", requireAuth, asyncRoute(async (req, res) =>
 router.get("/analytics", requireAuth, requireStaff, asyncRoute(async (req, res) => {
   const range = String(req.query.range || "30d");
   const ranges = { "7d": 7, "30d": 30, "2m": 60, "1y": 365 };
+  const isCalendarMonth = range === "month";
   const days = ranges[range] || 30;
+  const periodCondition = isCalendarMonth
+    ? "created_at >= DATE_SUB(DATE_FORMAT(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 2 HOUR), '%Y-%m-01'), INTERVAL 2 HOUR)"
+    : "created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)";
+  const periodValues = isCalendarMonth ? [] : [days];
   const [[totals]] = await pool.execute(
     `SELECT COUNT(*) AS reports_count,
        SUM(status = 'RESOLVED') AS resolved_count,
        ROUND(AVG(CASE WHEN status = 'RESOLVED' THEN TIMESTAMPDIFF(HOUR, created_at, updated_at) END), 1) AS avg_resolution_hours
-     FROM reports WHERE created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)`,
-    [days],
+     FROM reports WHERE ${periodCondition}`,
+    periodValues,
   );
   const [categories] = await pool.execute(
     `SELECT category_name AS category, COUNT(*) AS count FROM reports
-     WHERE created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)
+     WHERE ${periodCondition}
      GROUP BY category_name ORDER BY count DESC`,
-    [days],
+    periodValues,
   );
   const [monthly] = await pool.execute(
     `SELECT DATE_FORMAT(created_at, '%Y-%m') AS month,
