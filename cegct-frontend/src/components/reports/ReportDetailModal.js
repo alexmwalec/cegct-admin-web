@@ -15,6 +15,7 @@ const ReportDetailModal = () => {
   const { reports, updateReport } = useDashboard();
   const report = reports.find((item) => item.id === id);
   const reportStatus = report?.status;
+  const reportSeverity = report?.severity;
   const reportPhotoUrl = report?.photoUrl;
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState([]);
@@ -22,10 +23,17 @@ const ReportDetailModal = () => {
   const [selectedStatus, setSelectedStatus] = useState(
     reportStatus || "SUBMITTED",
   );
+  const [selectedSeverity, setSelectedSeverity] = useState(
+    reportSeverity || "MEDIUM",
+  );
 
   useEffect(() => {
     if (reportStatus) setSelectedStatus(reportStatus);
   }, [reportStatus]);
+
+  useEffect(() => {
+    if (reportSeverity) setSelectedSeverity(reportSeverity);
+  }, [reportSeverity]);
 
   useEffect(() => {
     setEvidenceError(false);
@@ -64,8 +72,13 @@ const ReportDetailModal = () => {
   const addNote = async () => {
     const trimmedNote = note.trim();
     const statusChanged = selectedStatus !== report.status;
-    if (!trimmedNote && !statusChanged) return;
-    const updated = await updateReport(report.id, { status: selectedStatus, note: trimmedNote });
+    const severityChanged = selectedSeverity !== report.severity;
+    if (!trimmedNote && !statusChanged && !severityChanged) return;
+    const updated = await updateReport(report.id, {
+      status: selectedStatus,
+      severity: selectedSeverity,
+      note: trimmedNote,
+    });
     if (!updated) return;
     if (trimmedNote) {
       try {
@@ -164,6 +177,26 @@ const ReportDetailModal = () => {
             </select>
           </label>
         </div>
+        <div className="mb-6">
+          <label className="block text-sm font-semibold" htmlFor="case-severity">
+            Case severity
+            <select
+              className="mt-2 block h-11 w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 text-sm"
+              id="case-severity"
+              value={selectedSeverity}
+              onChange={(event) => setSelectedSeverity(event.target.value)}
+            >
+              {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((value) => (
+                <option key={value} value={value}>
+                  {value.charAt(0) + value.slice(1).toLowerCase()}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block max-w-md text-xs font-normal text-gray-500">
+              Review the report details and evidence, then select the appropriate severity.
+            </span>
+          </label>
+        </div>
         <section className="mb-7 rounded-lg border border-gray-200 p-4">
           <h2 className="mb-3 text-lg font-bold">Citizen evidence</h2>
           {reportPhotoUrl && !evidenceError ? (
@@ -214,10 +247,10 @@ const ReportDetailModal = () => {
         />
         <button
           className="mt-3 rounded-lg bg-[#185835] px-5 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!note.trim() && selectedStatus === report.status}
+          disabled={!note.trim() && selectedStatus === report.status && selectedSeverity === report.severity}
           onClick={addNote}
         >
-          Post update
+          {note.trim() ? "Post update" : "Save case changes"}
         </button>
         {report.status !== "RESOLVED" && (
           <button

@@ -111,6 +111,7 @@ export const DashboardProvider = ({ children }) => {
         method: "PATCH",
         body: JSON.stringify({
           ...(updates.status ? { status: updates.status } : {}),
+          ...(updates.severity ? { severity: updates.severity } : {}),
           ...(updates.assignedOfficerId !== undefined ? { assignedOfficerId: updates.assignedOfficerId } : {}),
           ...(updates.note ? { note: updates.note } : {}),
         }),
