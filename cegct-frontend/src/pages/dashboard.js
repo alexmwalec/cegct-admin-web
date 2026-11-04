@@ -5,14 +5,40 @@ import StatCard from "../components/dashboard/StatCard";
 import LiveReportMap from "../components/dashboard/LiveReportMap";
 import RecentReports from "../components/dashboard/RecentReports";
 import { useDashboard } from "../lib/AppContext";
+import { apiRequest } from "../services/api";
+import { socket } from "../services/socket";
 
 const Dashboard = () => {
   const { reports, loading, user } = useDashboard();
   const [now, setNow] = useState(() => new Date());
+  const [responseMetrics, setResponseMetrics] = useState(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60 * 1000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const loadResponseMetrics = () => {
+      apiRequest("/analytics?range=month")
+        .then((result) => {
+          if (active) setResponseMetrics(result.data);
+        })
+        .catch(() => {
+          if (active) setResponseMetrics(null);
+        });
+    };
+    loadResponseMetrics();
+    const refreshTimer = window.setInterval(loadResponseMetrics, 60 * 1000);
+    socket.on("report:updated", loadResponseMetrics);
+    socket.on("admin:new_report", loadResponseMetrics);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+      socket.off("report:updated", loadResponseMetrics);
+      socket.off("admin:new_report", loadResponseMetrics);
+    };
   }, []);
 
   const today = new Intl.DateTimeFormat("en-US", {
@@ -112,13 +138,25 @@ const Dashboard = () => {
         <div className="mt-5 grid gap-5 sm:grid-cols-3">
           <div>
             <span className="block text-sm text-gray-500">Resolution rate</span>
-            <b className="mt-1 block text-2xl text-[#185835]">78%</b>
+            <b className="mt-1 block text-2xl text-[#185835]">
+              {responseMetrics ? `${responseMetrics.resolutionRate}%` : "—"}
+            </b>
           </div>
           <div>
             <span className="block text-sm text-gray-500">
               Average response time
             </span>
-            <b className="mt-1 block text-2xl">4.2 hrs</b>
+            <b className="mt-1 block text-2xl">
+              {responseMetrics?.avgResolutionHours == null
+                ? "—"
+                : `${responseMetrics.avgResolutionHours} hrs`}
+            </b>
+          </div>
+          <div>
+            <span className="block text-sm text-gray-500">Resolved cases</span>
+            <b className="mt-1 block text-2xl">
+              {responseMetrics ? responseMetrics.resolvedCount : "—"}
+            </b>
           </div>
         </div>
       </section>
