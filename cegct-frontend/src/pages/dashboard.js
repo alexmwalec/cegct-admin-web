@@ -120,12 +120,6 @@ const Dashboard = () => {
             </span>
             <b className="mt-1 block text-2xl">4.2 hrs</b>
           </div>
-          <div>
-            <span className="block text-sm text-gray-500">
-              Citizen satisfaction
-            </span>
-            <b className="mt-1 block text-2xl">4.8 / 5</b>
-          </div>
         </div>
       </section>
     </AdminLayout>
